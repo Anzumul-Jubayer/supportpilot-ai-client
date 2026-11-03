@@ -3,7 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "../providers";
 import GoogleProvider from "@/components/providers/google-provider";
-// import Providers from "./providers";
+import { Toaster } from "react-hot-toast";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -27,7 +28,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body>
         <GoogleProvider>
-          <Providers>{children}</Providers>
+          <Providers>
+            {children}
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 4000,
+                style: { fontSize: "14px" },
+                success: { duration: 3000 },
+                error: { duration: 5000 },
+              }}
+            />
+          </Providers>
         </GoogleProvider>
       </body>
     </html>

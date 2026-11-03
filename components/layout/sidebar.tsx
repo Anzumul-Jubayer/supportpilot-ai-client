@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -11,6 +10,9 @@ import {
   LogOut,
   Headset,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { clearAuth } from "@/lib/auth";
+import toast from "react-hot-toast";
 
 const navigation = [
   {
@@ -37,6 +39,13 @@ const navigation = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+function handleLogout() {
+  clearAuth();
+  toast.success("Signed out successfully.");
+  router.replace("/login");
+}
 
   return (
     <aside className="flex h-screen w-64 flex-col border-r border-gray-200 bg-white">
@@ -45,9 +54,7 @@ export default function Sidebar() {
           <Headset size={22} />
         </div>
 
-        <span className="text-lg font-bold text-gray-900">
-          SupportPilot AI
-        </span>
+        <span className="text-lg font-bold text-gray-900">SupportPilot AI</span>
       </div>
 
       <nav className="flex-1 space-y-2 p-4">
@@ -77,7 +84,10 @@ export default function Sidebar() {
       </nav>
 
       <div className="border-t p-4">
-        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm text-gray-600 hover:bg-gray-100">
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm text-gray-600 hover:bg-gray-100"
+        >
           <LogOut size={19} />
           Sign out
         </button>
