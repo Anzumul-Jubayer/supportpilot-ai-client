@@ -1,5 +1,5 @@
 "use client";
-
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import {
@@ -68,6 +68,7 @@ const fieldClass =
   "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-50 disabled:text-gray-400";
 
 export default function TicketsClient() {
+  const router = useRouter();
   const [tickets, setTickets]     = useState<TicketItem[]>([]);
   const [status, setStatus]       = useState<(typeof statuses)[number]>("ALL");
   const [search, setSearch]       = useState("");
@@ -273,7 +274,11 @@ export default function TicketsClient() {
                 const sc = statusConfig[ticket.status];
                 const pc = priorityConfig[ticket.priority];
                 return (
-                  <tr key={ticket.id} className="group transition-colors hover:bg-blue-50/50">
+                 <tr
+  key={ticket.id}
+  onClick={() => router.push(`/dashboard/tickets/${ticket.id}`)}
+  className="group cursor-pointer transition-colors hover:bg-blue-50/50"
+>
                     <td className="px-6 py-4">
                       <div className="flex items-start gap-3">
                         <div className="mt-0.5 rounded-lg bg-gray-100 p-1.5 group-hover:bg-blue-100">
