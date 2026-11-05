@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
@@ -191,7 +190,8 @@ export default function TicketDetailsPage() {
           setCommentError("Authentication required. Please log in again.");
           return;
         }
-
+        console.log("Ticket ID from URL:", ticketId);
+        console.log("Ticket ID from API:", ticket?.id);
         const response = await api.get<CommentsResponse>(
           `/api/v1/tickets/${ticketId}/comments`,
           {
@@ -329,9 +329,7 @@ export default function TicketDetailsPage() {
         current ? { ...current, assigneeId: selectedAgent } : current,
       );
 
-      setAssignMessage(
-        response.data.message || "Agent assigned successfully.",
-      );
+      setAssignMessage(response.data.message || "Agent assigned successfully.");
     } catch (err) {
       console.error("Failed to assign agent:", err);
       setAssignError("Unable to assign agent. Please try again.");
@@ -428,9 +426,7 @@ export default function TicketDetailsPage() {
 
         {/* Description */}
         <section>
-          <h2 className="text-base font-semibold text-gray-900">
-            Description
-          </h2>
+          <h2 className="text-base font-semibold text-gray-900">Description</h2>
 
           <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-gray-700">
             {ticket.description}
