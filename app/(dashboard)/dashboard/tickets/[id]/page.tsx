@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
@@ -22,6 +21,7 @@ import {
   Bot,
   FileText,
   ChevronDown,
+  Copy,
 } from "lucide-react";
 
 type UserRole = "CUSTOMER" | "AGENT" | "ADMIN";
@@ -36,6 +36,7 @@ type Ticket = {
   status: TicketStatus;
   priority: TicketPriority;
   category: string | null;
+  aiPriority: TicketPriority | null;
   aiSummary: string | null;
   aiReply: string | null;
   createdAt: string;
@@ -46,6 +47,12 @@ type Ticket = {
 
 type TicketResponse = {
   success: boolean;
+  data: Ticket;
+};
+
+type AIAnalysisResponse = {
+  success: boolean;
+  message: string;
   data: Ticket;
 };
 
@@ -213,6 +220,7 @@ function InfoItem({
 
       <div className="min-w-0">
         <p className="text-xs font-medium text-gray-500">{label}</p>
+
         <p className="mt-1 break-words text-sm font-semibold text-gray-900">
           {value}
         </p>
@@ -230,9 +238,7 @@ export default function TicketDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [currentUserRole, setCurrentUserRole] = useState<UserRole | null>(
-    null,
-  );
+  const [currentUserRole, setCurrentUserRole] = useState<UserRole | null>(null);
 
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -251,6 +257,12 @@ export default function TicketDetailsPage() {
   const [assigningAgent, setAssigningAgent] = useState(false);
   const [assignMessage, setAssignMessage] = useState("");
   const [assignError, setAssignError] = useState("");
+
+  // AI states
+  const [analyzingAI, setAnalyzingAI] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [aiMessage, setAiMessage] = useState("");
+  const [copySuccess, setCopySuccess] = useState("");
 
   // Fetch ticket details
   useEffect(() => {
@@ -501,10 +513,67 @@ export default function TicketDetailsPage() {
     }
   };
 
+  // Analyze ticket with AI
+  const handleAnalyzeTicket = async () => {
+    try {
+      setAnalyzingAI(true);
+      setAiError("");
+      setAiMessage("");
+      setCopySuccess("");
+
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        setAiError("Please log in again.");
+        return;
+      }
+
+      const response = await api.post<AIAnalysisResponse>(
+        `/api/v1/ai/tickets/${ticketId}/analyze`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      setTicket(response.data.data);
+      setAiMessage(response.data.message || "Ticket analyzed successfully!");
+    } catch (err) {
+      console.error("AI analysis failed:", err);
+
+      const error = err as {
+        response?: {
+          data?: {
+            message?: string;
+          };
+        };
+      };
+
+      setAiError(
+        error.response?.data?.message ||
+          "Unable to analyze ticket. Please try again.",
+      );
+    } finally {
+      setAnalyzingAI(false);
+    }
+  };
+
+  // Copy AI suggested reply
+  const handleCopyReply = async () => {
+    if (!ticket?.aiReply) return;
+
+    try {
+      await navigator.clipboard.writeText(ticket.aiReply);
+      setCopySuccess("AI reply copied successfully!");
+    } catch {
+      setCopySuccess("Unable to copy reply.");
+    }
+  };
+
   const currentStatus = ticket ? statusConfig[ticket.status] : null;
-  const currentPriority = ticket
-    ? priorityConfig[ticket.priority]
-    : null;
+  const currentPriority = ticket ? priorityConfig[ticket.priority] : null;
 
   const assignedAgent = agents.find(
     (agent) => agent.id === ticket?.assigneeId,
@@ -793,16 +862,72 @@ export default function TicketDetailsPage() {
           </section>
 
           {/* AI Assistance */}
-          {(ticket.aiSummary || ticket.aiReply) && (
+          {(currentUserRole === "AGENT" || currentUserRole === "ADMIN") && (
             <section className="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm sm:p-6">
-              <SectionTitle
-                icon={<Sparkles size={19} />}
-                title="AI Assistance"
-                description="AI-generated support insights for this ticket"
-              />
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <SectionTitle
+                  icon={<Sparkles size={19} />}
+                  title="AI Assistance"
+                  description="AI-powered insights and suggested responses"
+                />
 
+                <button
+                  type="button"
+                  onClick={handleAnalyzeTicket}
+                  disabled={analyzingAI}
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {analyzingAI ? (
+                    <>
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={16} />
+                      {ticket.aiSummary ? "Analyze Again" : "Analyze with AI"}
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {aiError && (
+                <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">
+                  {aiError}
+                </p>
+              )}
+
+              {aiMessage && (
+                <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">
+                  {aiMessage}
+                </p>
+              )}
+
+              {/* AI Recommended Priority */}
+              {ticket.aiPriority && (
+                <div className="mt-5 rounded-xl border border-orange-100 bg-orange-50/50 p-4">
+                  <p className="text-xs font-semibold text-gray-500">
+                    AI Recommended Priority
+                  </p>
+
+                  <span
+                    className={`mt-2 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold ${
+                      priorityConfig[ticket.aiPriority].color
+                    }`}
+                  >
+                    <span
+                      className={`h-2 w-2 rounded-full ${
+                        priorityConfig[ticket.aiPriority].dot
+                      }`}
+                    />
+                    {priorityConfig[ticket.aiPriority].label}
+                  </span>
+                </div>
+              )}
+
+              {/* AI Summary */}
               {ticket.aiSummary && (
-                <div className="mt-5 rounded-xl border border-blue-100 bg-blue-50/70 p-4 sm:p-5">
+                <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50/70 p-4 sm:p-5">
                   <div className="flex items-center gap-2">
                     <Bot size={17} className="text-blue-600" />
 
@@ -817,24 +942,64 @@ export default function TicketDetailsPage() {
                 </div>
               )}
 
+              {/* AI Suggested Reply */}
               {ticket.aiReply && (
                 <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50/70 p-4 sm:p-5">
-                  <div className="flex items-center gap-2">
-                    <MessageSquare
-                      size={17}
-                      className="text-emerald-600"
-                    />
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <MessageSquare
+                        size={17}
+                        className="text-emerald-600"
+                      />
 
-                    <h3 className="text-sm font-bold text-emerald-900">
-                      AI Suggested Reply
-                    </h3>
+                      <h3 className="text-sm font-bold text-emerald-900">
+                        AI Suggested Reply
+                      </h3>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleCopyReply}
+                      className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                    >
+                      <Copy size={14} />
+                      Copy Reply
+                    </button>
                   </div>
 
                   <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-emerald-900/80">
                     {ticket.aiReply}
                   </p>
+
+                  {copySuccess && (
+                    <p className="mt-3 text-xs font-medium text-emerald-700">
+                      {copySuccess}
+                    </p>
+                  )}
                 </div>
               )}
+
+              {/* Empty state */}
+              {!ticket.aiSummary &&
+                !ticket.aiReply &&
+                !ticket.aiPriority &&
+                !analyzingAI && (
+                  <div className="mt-5 rounded-xl border border-dashed border-gray-200 bg-gray-50 p-6 text-center">
+                    <Sparkles
+                      size={25}
+                      className="mx-auto text-gray-400"
+                    />
+
+                    <p className="mt-3 text-sm font-semibold text-gray-700">
+                      No AI analysis yet
+                    </p>
+
+                    <p className="mt-1 text-xs text-gray-500">
+                      Click Analyze with AI to generate insights for this
+                      ticket.
+                    </p>
+                  </div>
+                )}
             </section>
           )}
         </div>
@@ -876,8 +1041,7 @@ export default function TicketDetailsPage() {
           </section>
 
           {/* Agent assignment */}
-          {(currentUserRole === "AGENT" ||
-            currentUserRole === "ADMIN") && (
+          {(currentUserRole === "AGENT" || currentUserRole === "ADMIN") && (
             <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
               <SectionTitle
                 icon={<Users size={19} />}
