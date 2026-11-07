@@ -241,7 +241,7 @@ Make sure you have installed:
 **Backend**
 
 ```bash
-git clone YOUR_BACKEND_REPOSITORY_URL
+git clone https://github.com/Anzumul-Jubayer/supportpilot--ai
 cd supportpilot-ai
 npm install
 ```
@@ -249,7 +249,7 @@ npm install
 **Frontend**
 
 ```bash
-git clone YOUR_FRONTEND_REPOSITORY_URL
+git clone https://github.com/Anzumul-Jubayer/supportpilot-ai-client
 cd supportpilot-ai-client
 npm install
 ```
