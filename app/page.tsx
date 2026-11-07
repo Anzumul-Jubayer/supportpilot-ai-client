@@ -1,5 +1,6 @@
-import HomeClient from "./_client";
+import LoginClient from "./(auth)/login/_client";
 
 export default function HomePage() {
-  return <HomeClient />;
+  return <LoginClient />;
 }
+
